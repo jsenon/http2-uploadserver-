@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -8,6 +9,7 @@ import (
 	"os"
 
 	mymetrics "github.com/jsenon/http2-uploadserver/internal/metrics"
+	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
@@ -64,8 +66,37 @@ func File(w http.ResponseWriter, r *http.Request) {
 func OStream(w http.ResponseWriter, r *http.Request) {
 	log.Info().Msg("File Upload Octect Stream Hit")
 
+	carrier := opentracing.HTTPHeadersCarrier(r.Header)
+	wireContext, err := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, carrier)
+	var span opentracing.Span
+	if err != nil {
+		log.Info().Msgf("Don't have found a span issue a new one", span)
+	}
+	log.Info().Msgf("Have found a span: %v", wireContext)
+	span = opentracing.StartSpan(r.URL.Path, opentracing.ChildOf(wireContext))
+	log.Info().Msgf("Generate it's child: %v", span)
+	defer span.Finish()
+	ctx := opentracing.ContextWithSpan(context.Background(), span)
+
 	dir := viper.GetString("OUTPUTDIR")
 	log.Debug().Msgf("Output directory: %v", dir)
+	body := r.Body
+	n, err := copystream(ctx, dir, body)
+	if err != nil {
+		return
+	}
+	mymetrics.UploadOK.Inc()
+	w.Write([]byte(fmt.Sprintf("%d bytes are recieved.\n", n)))
+	// return that we have successfully uploaded our file!
+	log.Info().Msgf("Successfully Uploaded File")
+
+}
+
+func copystream(ctx context.Context, dir string, body io.Reader) (int64, error) {
+	parent, _ := opentracing.StartSpanFromContext(ctx, "(*http2-uploaderserver).upload.copystream")
+	log.Info().Msgf("Have found a ctx, generate span %v", parent)
+	defer parent.Finish()
+
 	log.Info().Msgf("Starting Upload: %v", dir)
 
 	targetfile := dir + "/result"
@@ -73,19 +104,16 @@ func OStream(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error().Msgf("Error Creating the File: %v", err)
 		mymetrics.UploadNOK.Inc()
-		return
+		return 0, err
 	}
 	defer file.Close()
 
-	n, err := io.Copy(file, r.Body)
+	n, err := io.Copy(file, body)
 	if err != nil {
 		log.Error().Msgf("Error Copying the File: %v", err)
 		mymetrics.UploadNOK.Inc()
-		return
+		return 0, err
 	}
+	return n, nil
 
-	mymetrics.UploadOK.Inc()
-	w.Write([]byte(fmt.Sprintf("%d bytes are recieved.\n", n)))
-	// return that we have successfully uploaded our file!
-	log.Info().Msgf("Successfully Uploaded File")
 }
