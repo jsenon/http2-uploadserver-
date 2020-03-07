@@ -82,7 +82,7 @@ func OStream(w http.ResponseWriter, r *http.Request) {
 
 func copystream(ctx context.Context, dir string, body io.Reader) (int64, error) {
 	parent, _ := opentracing.StartSpanFromContext(ctx, "(*http2-uploaderserver).upload.copystream")
-	log.Info().Msgf("Have found a ctx, generate span %v", parent)
+	log.Debug().Msgf("Have found a ctx, generate span %v", parent)
 	defer parent.Finish()
 
 	log.Info().Msgf("Starting Upload: %v", dir)
