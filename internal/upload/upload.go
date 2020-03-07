@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	mymetrics "github.com/jsenon/http2-uploadserver/internal/upload"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
@@ -26,6 +27,7 @@ func File(w http.ResponseWriter, r *http.Request) {
 	file, handler, err := r.FormFile("myFile")
 	if err != nil {
 		log.Error().Msgf("Error Retrieving the File: %v", err)
+		mymetrics.UploadedNOK.Inc()
 		return
 	}
 	defer file.Close()
@@ -38,6 +40,7 @@ func File(w http.ResponseWriter, r *http.Request) {
 	tempFile, err := ioutil.TempFile(dir, "upload-*.jpeg")
 	if err != nil {
 		log.Error().Msgf("Error ioCreate %v", err)
+		mymetrics.UploadedNOK.Inc()
 	}
 	defer tempFile.Close()
 
@@ -46,9 +49,12 @@ func File(w http.ResponseWriter, r *http.Request) {
 	fileBytes, err := ioutil.ReadAll(file)
 	if err != nil {
 		log.Error().Msgf("Error ioRead: %v", err)
+		mymetrics.UploadedNOK.Inc()
 	}
 	// write this byte array to our temporary file
 	tempFile.Write(fileBytes)
+	mymetrics.UploadedOK.Inc()
+
 	// return that we have successfully uploaded our file!
 	log.Info().Msgf("Successfully Uploaded File")
 	w.Write([]byte(fmt.Sprintf("Successfully Uploaded File\n")))
@@ -64,14 +70,21 @@ func OStream(w http.ResponseWriter, r *http.Request) {
 	targetfile := dir + "/result"
 	file, err := os.Create(targetfile)
 	if err != nil {
-		panic(err)
+		log.Error().Msgf("Error Creating the File: %v", err)
+		mymetrics.UploadedNOK.Inc()
+		return
 	}
 	defer file.Close()
 
 	n, err := io.Copy(file, r.Body)
 	if err != nil {
-		panic(err)
+		log.Error().Msgf("Error Copying the File: %v", err)
+		mymetrics.UploadedNOK.Inc()
+		return
 	}
+	defer n.Close()
+
+	mymetrics.UploadedOK.Inc()
 	w.Write([]byte(fmt.Sprintf("%d bytes are recieved.\n", n)))
 	// return that we have successfully uploaded our file!
 	log.Info().Msgf("Successfully Uploaded File")
