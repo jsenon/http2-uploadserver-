@@ -7,13 +7,23 @@
     <title>Document</title>
   </head>
   <body>
+    Multipart Form Data:
     <form
       enctype="multipart/form-data"
-      action="https://staging.delair-stack.com/jse-upload/"
+      action="http://localhost:8080/upload/"
       method="post"
     >
       <input type="file" name="myFile" multiple  />
       <input type="submit" value="upload" />
     </form>
+    Octet Stream:
+    <form
+    enctype="application/octet-stream"
+    action="http://localhost:8080/upload-ostream/"
+    method="post"
+  >
+    <input type="file" name="myFile" multiple  />
+    <input type="submit" value="upload" />
+  </form>
   </body>
 </html>

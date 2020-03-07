@@ -17,5 +17,6 @@ func Serve() {
 
 func setupRoutes() {
 	http.HandleFunc("/upload", upload.File)
+	http.HandleFunc("/upload-ostream", upload.OStream)
 	http.ListenAndServe(":8080", nil)
 }
