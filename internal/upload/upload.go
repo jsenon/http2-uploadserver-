@@ -53,7 +53,7 @@ func File(w http.ResponseWriter, r *http.Request) {
 	}
 	// write this byte array to our temporary file
 	tempFile.Write(fileBytes)
-	mymetrics.UploadedOK.Inc()
+	mymetrics.UploadOK.Inc()
 
 	// return that we have successfully uploaded our file!
 	log.Info().Msgf("Successfully Uploaded File")
@@ -84,7 +84,7 @@ func OStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mymetrics.UploadedOK.Inc()
+	mymetrics.UploadOK.Inc()
 	w.Write([]byte(fmt.Sprintf("%d bytes are recieved.\n", n)))
 	// return that we have successfully uploaded our file!
 	log.Info().Msgf("Successfully Uploaded File")

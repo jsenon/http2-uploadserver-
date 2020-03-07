@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	// UploadedOK represent the total number of success job
-	UploadedOK = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "http2-uploaderserver-upload-successfully-total",
+	// UploadOK represent the total number of success job
+	UploadOK = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "http2_uploaderserver_upload_success_total",
 		Help: "The total number of success upload",
 	})
 )
@@ -17,7 +17,7 @@ var (
 var (
 	// UploadNOK represent the total number of failed job creation
 	UploadNOK = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "http2-uploaderserver-upload-failed-total",
+		Name: "http2_uploaderserver_upload_failed_total",
 		Help: "The total number of failed upload",
 	})
 )
