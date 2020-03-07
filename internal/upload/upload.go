@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	mymetrics "github.com/jsenon/http2-uploadserver/internal/upload"
+	mymetrics "github.com/jsenon/http2-uploadserver/internal/metrics"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
@@ -27,7 +27,7 @@ func File(w http.ResponseWriter, r *http.Request) {
 	file, handler, err := r.FormFile("myFile")
 	if err != nil {
 		log.Error().Msgf("Error Retrieving the File: %v", err)
-		mymetrics.UploadedNOK.Inc()
+		mymetrics.UploadNOK.Inc()
 		return
 	}
 	defer file.Close()
@@ -40,7 +40,7 @@ func File(w http.ResponseWriter, r *http.Request) {
 	tempFile, err := ioutil.TempFile(dir, "upload-*.jpeg")
 	if err != nil {
 		log.Error().Msgf("Error ioCreate %v", err)
-		mymetrics.UploadedNOK.Inc()
+		mymetrics.UploadNOK.Inc()
 	}
 	defer tempFile.Close()
 
@@ -49,7 +49,7 @@ func File(w http.ResponseWriter, r *http.Request) {
 	fileBytes, err := ioutil.ReadAll(file)
 	if err != nil {
 		log.Error().Msgf("Error ioRead: %v", err)
-		mymetrics.UploadedNOK.Inc()
+		mymetrics.UploadNOK.Inc()
 	}
 	// write this byte array to our temporary file
 	tempFile.Write(fileBytes)
@@ -65,13 +65,14 @@ func OStream(w http.ResponseWriter, r *http.Request) {
 	log.Info().Msg("File Upload Octect Stream Hit")
 
 	dir := viper.GetString("OUTPUTDIR")
-	log.Info().Msgf("Output directory: %v", dir)
+	log.Debug().Msgf("Output directory: %v", dir)
+	log.Info().Msgf("Starting Upload: %v", dir)
 
 	targetfile := dir + "/result"
 	file, err := os.Create(targetfile)
 	if err != nil {
 		log.Error().Msgf("Error Creating the File: %v", err)
-		mymetrics.UploadedNOK.Inc()
+		mymetrics.UploadNOK.Inc()
 		return
 	}
 	defer file.Close()
@@ -79,10 +80,9 @@ func OStream(w http.ResponseWriter, r *http.Request) {
 	n, err := io.Copy(file, r.Body)
 	if err != nil {
 		log.Error().Msgf("Error Copying the File: %v", err)
-		mymetrics.UploadedNOK.Inc()
+		mymetrics.UploadNOK.Inc()
 		return
 	}
-	defer n.Close()
 
 	mymetrics.UploadedOK.Inc()
 	w.Write([]byte(fmt.Sprintf("%d bytes are recieved.\n", n)))
