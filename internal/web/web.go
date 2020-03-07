@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/jsenon/http2-uploadserver/internal/upload"
 	"github.com/rs/zerolog/log"
 )
@@ -25,6 +27,7 @@ func setupRoutes() {
 		http.HandleFunc("/upload", upload.File)
 		http.HandleFunc("/healthz", healthz)
 		http.HandleFunc("/upload-ostream", upload.OStream)
+		http.HandleFunc("/metrics", promhttp.Handler().ServeHTTP)
 		log.Info().Msg("Server Listening on port 8080")
 		if err := http.ListenAndServe(":8080", nil); err != nil && err != http.ErrServerClosed {
 			log.Fatal().Msgf("listen: %s\n", err)
