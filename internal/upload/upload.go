@@ -67,6 +67,7 @@ func OStream(w http.ResponseWriter, r *http.Request) {
 	log.Info().Msg("File Upload Octect Stream Hit")
 
 	carrier := opentracing.HTTPHeadersCarrier(r.Header)
+	log.Info().Msgf("Headers are: %v", r.Header)
 	wireContext, err := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, carrier)
 	var span opentracing.Span
 	if err != nil {
