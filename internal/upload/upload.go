@@ -66,23 +66,10 @@ func File(w http.ResponseWriter, r *http.Request) {
 func OStream(w http.ResponseWriter, r *http.Request) {
 	log.Info().Msg("File Upload Octect Stream Hit")
 
-	carrier := opentracing.HTTPHeadersCarrier(r.Header)
-	log.Info().Msgf("Headers are: %v", r.Header)
-	wireContext, err := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, carrier)
-	var span opentracing.Span
-	if err != nil {
-		log.Info().Msgf("Don't have found a span issue a new one", span)
-	}
-	log.Info().Msgf("Have found a span: %v", wireContext)
-	span = opentracing.StartSpan(r.URL.Path, opentracing.ChildOf(wireContext))
-	log.Info().Msgf("Generate it's child: %v", span)
-	defer span.Finish()
-	ctx := opentracing.ContextWithSpan(context.Background(), span)
-
 	dir := viper.GetString("OUTPUTDIR")
 	log.Debug().Msgf("Output directory: %v", dir)
 	body := r.Body
-	n, err := copystream(ctx, dir, body)
+	n, err := copystream(r.Context(), dir, body)
 	if err != nil {
 		return
 	}
