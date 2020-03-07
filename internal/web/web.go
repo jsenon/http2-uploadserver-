@@ -1,5 +1,7 @@
 package web
 
+// TO DO: Implmentation with http2
+
 import (
 	"net/http"
 
