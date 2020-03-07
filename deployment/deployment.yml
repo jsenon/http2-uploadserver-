@@ -28,6 +28,8 @@ spec:
           args:
             [
               "server",
+              "--outputdir",
+              "/datas",
             ]
           volumeMounts:
             - mountPath: /datas

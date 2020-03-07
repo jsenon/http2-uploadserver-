@@ -1,6 +1,6 @@
 package web
 
-// TO DO: Implmentation with http2
+// TO DO: http2 could only be choosing if TLS is activated
 
 import (
 	"net/http"

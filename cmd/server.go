@@ -23,7 +23,10 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
+
+var outputdir string
 
 // serverCmd represents the server command when called without any subcommands
 var serverCmd = &cobra.Command{
@@ -48,6 +51,18 @@ var serverCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
+	serverCmd.PersistentFlags().StringVar(&outputdir, "outputdir", "",
+		"Kubernetes ini files with endpoint and credentials (required)")
+
+	err := serverCmd.MarkPersistentFlagRequired("outputdir")
+	if err != nil {
+		log.Error().Msgf("Error mark required outputdir value: %v", err.Error())
+	}
+	err = viper.BindPFlag("outputdir", serverCmd.PersistentFlags().Lookup("outputdir"))
+	if err != nil {
+		log.Error().Msgf("Error binding outputdir value: %v", err.Error())
+	}
 
 	cobra.OnInitialize(initConfig)
+
 }
