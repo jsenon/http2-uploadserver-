@@ -30,6 +30,8 @@ import (
 var cfgFile string
 var version bool
 var loglevel bool
+var disabletrace bool
+var jaegerurl string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -64,6 +66,21 @@ func init() {
 	err := viper.BindPFlag("loglevel", rootCmd.PersistentFlags().Lookup("debug"))
 	if err != nil {
 		log.Error().Msgf("Error binding loglevel value: %v", err.Error())
+	}
+	rootCmd.PersistentFlags().BoolVar(&disabletrace, "disabletrace", false, "Disable the trace")
+	rootCmd.PersistentFlags().StringVar(&jaegerurl, "jaegerurl", "",
+		"Set jaegger agent endpoint (without port, without http://)")
+
+	err = viper.BindPFlag("jaegerurl", rootCmd.PersistentFlags().Lookup("jaegerurl"))
+	if err != nil {
+		log.Error().Msgf("Error binding jaegerurl value: %v", err.Error())
+	}
+
+	viper.SetDefault("jaegerurl", "")
+
+	err = viper.BindPFlag("disabletrace", rootCmd.PersistentFlags().Lookup("disabletrace"))
+	if err != nil {
+		log.Error().Msgf("Error binding disabletrace value: %v", err.Error())
 	}
 
 }

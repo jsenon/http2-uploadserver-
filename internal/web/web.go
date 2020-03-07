@@ -9,7 +9,9 @@ import (
 	"syscall"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/spf13/viper"
 
+	"github.com/jsenon/http2-uploadserver/internal/opentracing"
 	"github.com/jsenon/http2-uploadserver/internal/upload"
 	"github.com/rs/zerolog/log"
 )
@@ -17,6 +19,16 @@ import (
 // Serve luanch http server
 func Serve() {
 	log.Info().Msg("Startin Web Server on port 8080")
+	if !viper.GetBool("DISABLETRACE") {
+		jaeger := viper.GetString("JAEGERURL")
+
+		closer, err := opentracing.ConfigureTracing(jaeger)
+		if err != nil {
+			log.Fatal().Msgf("Can't start: %v", err)
+		}
+
+		defer closer.Close()
+	}
 	setupRoutes()
 }
 

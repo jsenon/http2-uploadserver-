@@ -64,12 +64,15 @@ func File(w http.ResponseWriter, r *http.Request) {
 
 // OStream implement upload for octectstream
 func OStream(w http.ResponseWriter, r *http.Request) {
+	parent, ctxchild := opentracing.StartSpanFromContext(r.Context(), "(*http2-uploaderserver).upload.OStream")
+	log.Debug().Msgf("Have found a ctx, generate span %v", parent)
+	defer parent.Finish()
 	log.Info().Msg("File Upload Octect Stream Hit")
 
 	dir := viper.GetString("OUTPUTDIR")
 	log.Debug().Msgf("Output directory: %v", dir)
 	body := r.Body
-	n, err := copystream(r.Context(), dir, body)
+	n, err := copystream(ctxchild, dir, body)
 	if err != nil {
 		return
 	}
