@@ -1,0 +1,18 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  annotations:
+    prometheus.io/scrape: "false"
+    prometheus.io/port: "8080"
+  labels:
+    app: http2-uploadserver
+  name: http2-uploadserver
+spec:
+  selector:
+    app: http2-uploadserver
+  ports:
+    - protocol: TCP
+      name: http-8080
+      port: 8080
+      targetPort: 8080
