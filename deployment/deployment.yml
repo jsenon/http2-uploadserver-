@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    prometheus.io/scrape: "false"
+    prometheus.io/scrape: "true"
     prometheus.io/port: "8080"
   name: http2-uploadserver
 spec:
