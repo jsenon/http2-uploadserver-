@@ -8,31 +8,35 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 
-	"github.com/jsenon/http2-uploadserver/internal/opentracing"
+	myopentracing "github.com/jsenon/http2-uploadserver/internal/opentracing"
 	"github.com/jsenon/http2-uploadserver/internal/upload"
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
+
 	"github.com/rs/zerolog/log"
 )
 
 // Serve luanch http server
 func Serve() {
 	log.Info().Msg("Startin Web Server on port 8080")
+	var tracer opentracing.Tracer
 	if !viper.GetBool("DISABLETRACE") {
 		jaeger := viper.GetString("JAEGERURL")
 
-		closer, err := opentracing.ConfigureTracing(jaeger)
+		tracer, closer, err := myopentracing.ConfigureTracing(jaeger)
 		if err != nil {
 			log.Fatal().Msgf("Can't start: %v", err)
 		}
-
+		setupRoutes(tracer)
 		defer closer.Close()
 	}
-	setupRoutes()
+	setupRoutes(tracer)
 }
 
-func setupRoutes() {
+func setupRoutes(tracer opentracing.Tracer) {
 
 	go func() {
 		// service connections
@@ -41,7 +45,7 @@ func setupRoutes() {
 		http.HandleFunc("/upload-ostream", upload.OStream)
 		http.HandleFunc("/metrics", promhttp.Handler().ServeHTTP)
 		log.Info().Msg("Server Listening on port 8080")
-		if err := http.ListenAndServe(":8080", nil); err != nil && err != http.ErrServerClosed {
+		if err := http.ListenAndServe(":8080", nethttp.Middleware(tracer, http.DefaultServeMux)); err != nil && err != http.ErrServerClosed {
 			log.Fatal().Msgf("listen: %s\n", err)
 		}
 	}()

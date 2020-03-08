@@ -73,7 +73,7 @@ func OStream(w http.ResponseWriter, r *http.Request) {
 	defer serverSpan.Finish()
 
 	log.Debug().Msgf("Span ctx: %v, generated span: %v", spanCtx, serverSpan)
-	log.Debug().Msgf("Header: %v, generated span %v", r.Header)
+	log.Debug().Msgf("Header: %v, generated span %v, context: %v", r.Header, serverSpan, r.Context())
 
 	log.Info().Msg("File Upload Octect Stream Hit")
 

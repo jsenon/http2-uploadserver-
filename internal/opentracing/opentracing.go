@@ -5,28 +5,29 @@ import (
 	"io"
 	"net"
 	"strings"
+	"time"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
-	jaegercfg "github.com/uber/jaeger-client-go/config"
-	jaegerlog "github.com/uber/jaeger-client-go/log"
-	"github.com/uber/jaeger-lib/metrics"
+	myjaeger "github.com/uber/jaeger-client-go"
+	"github.com/uber/jaeger-client-go/zipkin"
 )
 
 // ConfigureTracing configures OpenTracing client
-func ConfigureTracing(jaeger string) (closer io.Closer, err error) {
+func ConfigureTracing(jaeger string) (tracer opentracing.Tracer, closer io.Closer, err error) {
 	var localagenthostport string
 
 	if strings.Contains(jaeger, "http") || strings.Contains(jaeger, ":5") ||
 		strings.Contains(jaeger, ":") || strings.Contains(jaeger, "/") {
 		errmsg := errors.New("wrong caracters set in jaeger url, do not set http:// or port")
-		return closer, errors.Wrapf(errmsg, "Unable to launch opentracing")
+		return tracer, closer, errors.Wrapf(errmsg, "Unable to launch opentracing")
 	}
 
 	if net.ParseIP(jaeger) == nil {
 		localAgentHostPortIP, err2 := net.LookupHost(jaeger)
 		if err2 != nil {
 			errmsg := errors.New("could not resolv DNS jaeger tracer")
-			return closer, errors.Wrapf(errmsg, "Unable to launch opentracing")
+			return tracer, closer, errors.Wrapf(errmsg, "Unable to launch opentracing")
 		}
 
 		localagenthostport = localAgentHostPortIP[0] + ":5775"
@@ -34,32 +35,24 @@ func ConfigureTracing(jaeger string) (closer io.Closer, err error) {
 		localagenthostport = jaeger + ":5775"
 	}
 
-	samplingurl := "http://" + jaeger + ":5778/sampling"
-	cfg := jaegercfg.Configuration{
-		Sampler: &jaegercfg.SamplerConfig{
-			Type:              "const",
-			Param:             0.1,
-			SamplingServerURL: samplingurl,
-		},
-		Reporter: &jaegercfg.ReporterConfig{
-			LogSpans: false,
-			// LocalAgentHostPort: localagenthostport,
-			LocalAgentHostPort: localagenthostport,
-		},
-	}
-	jLogger := jaegerlog.StdLogger
-	jMetricsFactory := metrics.NullFactory
+	sender, _ := myjaeger.NewUDPTransport(localagenthostport, 0)
 
-	// Initialize tracer with a logger and a metrics factory
-	closer, err = cfg.InitGlobalTracer(
+	//B3
+	zipkinPropagator := zipkin.NewZipkinB3HTTPHeaderPropagator()
+	injector := myjaeger.TracerOptions.Injector(opentracing.HTTPHeaders, zipkinPropagator)
+	extractor := myjaeger.TracerOptions.Extractor(opentracing.HTTPHeaders, zipkinPropagator)
+	// Zipkin shares span ID between client and server spans; it must be enabled via the following option.
+	zipkinSharedRPCSpan := myjaeger.TracerOptions.ZipkinSharedRPCSpan(true)
+
+	tracer, closer = myjaeger.NewTracer(
 		"http2-uploader",
-		jaegercfg.Logger(jLogger),
-		jaegercfg.Metrics(jMetricsFactory),
+		myjaeger.NewConstSampler(true),
+		myjaeger.NewRemoteReporter(
+			sender,
+			myjaeger.ReporterOptions.BufferFlushInterval(1*time.Second)),
+		injector,
+		extractor,
+		zipkinSharedRPCSpan,
 	)
-	if err != nil {
-		errmsg := errors.New("could not initialize jaeger tracer")
-		return closer, errors.Wrapf(errmsg, "Unable to launch opentracing %v", localagenthostport)
-	}
-
-	return closer, nil
+	return tracer, closer, nil
 }
