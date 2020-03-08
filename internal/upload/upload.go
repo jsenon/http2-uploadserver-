@@ -65,12 +65,16 @@ func File(w http.ResponseWriter, r *http.Request) {
 // OStream implement upload for octectstream
 func OStream(w http.ResponseWriter, r *http.Request) {
 	tracer := opentracing.GlobalTracer()
-	spanCtx, _ := tracer.Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(r.Header))
+	spanCtx, err := tracer.Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(r.Header))
+	if err != nil {
+		log.Error().Msgf("Error Extract header span: %v", err)
+		return
+	}
 	serverSpan := tracer.StartSpan("(*http2-uploaderserver).upload.OStream", ext.RPCServerOption(spanCtx))
 	defer serverSpan.Finish()
-	// parent, ctxchild := opentracing.StartSpanFromContext(r.Context(), "(*http2-uploaderserver).upload.OStream")
-	// log.Debug().Msgf("Have found a ctx, generate span %v", parent)
-	// defer parent.Finish()
+
+	log.Debug().Msgf("Have found a ctx %v, generate span %v", spanCtx, serverSpan)
+
 	log.Info().Msg("File Upload Octect Stream Hit")
 
 	dir := viper.GetString("OUTPUTDIR")
