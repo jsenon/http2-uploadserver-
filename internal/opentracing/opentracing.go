@@ -38,7 +38,7 @@ func ConfigureTracing(jaeger string) (closer io.Closer, err error) {
 	cfg := jaegercfg.Configuration{
 		Sampler: &jaegercfg.SamplerConfig{
 			Type:              "const",
-			Param:             1,
+			Param:             0.1,
 			SamplingServerURL: samplingurl,
 		},
 		Reporter: &jaegercfg.ReporterConfig{
