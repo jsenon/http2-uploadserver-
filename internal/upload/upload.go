@@ -1,7 +1,6 @@
 package upload
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -10,6 +9,7 @@ import (
 
 	mymetrics "github.com/jsenon/http2-uploadserver/internal/metrics"
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
@@ -64,15 +64,19 @@ func File(w http.ResponseWriter, r *http.Request) {
 
 // OStream implement upload for octectstream
 func OStream(w http.ResponseWriter, r *http.Request) {
-	parent, ctxchild := opentracing.StartSpanFromContext(r.Context(), "(*http2-uploaderserver).upload.OStream")
-	log.Debug().Msgf("Have found a ctx, generate span %v", parent)
-	defer parent.Finish()
+	tracer := opentracing.GlobalTracer()
+	spanCtx, _ := tracer.Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(r.Header))
+	serverSpan := tracer.StartSpan("(*http2-uploaderserver).upload.OStream", ext.RPCServerOption(spanCtx))
+	defer serverSpan.Finish()
+	// parent, ctxchild := opentracing.StartSpanFromContext(r.Context(), "(*http2-uploaderserver).upload.OStream")
+	// log.Debug().Msgf("Have found a ctx, generate span %v", parent)
+	// defer parent.Finish()
 	log.Info().Msg("File Upload Octect Stream Hit")
 
 	dir := viper.GetString("OUTPUTDIR")
 	log.Debug().Msgf("Output directory: %v", dir)
 	body := r.Body
-	n, err := copystream(ctxchild, dir, body)
+	n, err := copystream(serverSpan.Context(), tracer, dir, body)
 	if err != nil {
 		return
 	}
@@ -83,10 +87,12 @@ func OStream(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func copystream(ctx context.Context, dir string, body io.Reader) (int64, error) {
-	parent, _ := opentracing.StartSpanFromContext(ctx, "(*http2-uploaderserver).upload.copystream")
-	log.Debug().Msgf("Have found a ctx, generate span %v", parent)
-	defer parent.Finish()
+func copystream(parentSpan opentracing.SpanContext, tracer opentracing.Tracer, dir string, body io.Reader) (int64, error) {
+	childSpan := tracer.StartSpan(
+		"*http2-uploaderserver).upload.copystream",
+		opentracing.ChildOf(parentSpan),
+	)
+	defer childSpan.Finish()
 
 	log.Info().Msgf("Starting Upload: %v", dir)
 
