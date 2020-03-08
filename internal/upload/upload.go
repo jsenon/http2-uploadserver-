@@ -67,8 +67,7 @@ func OStream(w http.ResponseWriter, r *http.Request) {
 	tracer := opentracing.GlobalTracer()
 	spanCtx, err := tracer.Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(r.Header))
 	if err != nil {
-		log.Error().Msgf("Error Extract header span: %v", err)
-		return
+		log.Warn().Msgf("Error Extract header span: %v", err)
 	}
 	serverSpan := tracer.StartSpan("(*http2-uploaderserver).upload.OStream", ext.RPCServerOption(spanCtx))
 	defer serverSpan.Finish()
