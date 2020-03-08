@@ -72,7 +72,8 @@ func OStream(w http.ResponseWriter, r *http.Request) {
 	serverSpan := tracer.StartSpan("(*http2-uploaderserver).upload.OStream", ext.RPCServerOption(spanCtx))
 	defer serverSpan.Finish()
 
-	log.Debug().Msgf("Have found a ctx %v, generate span %v", spanCtx, serverSpan)
+	log.Debug().Msgf("Span ctx: %v, generated span: %v", spanCtx, serverSpan)
+	log.Debug().Msgf("Header: %v, generated span %v", r.Header)
 
 	log.Info().Msg("File Upload Octect Stream Hit")
 
