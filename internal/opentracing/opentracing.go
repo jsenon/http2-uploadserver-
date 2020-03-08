@@ -54,5 +54,7 @@ func ConfigureTracing(jaeger string) (tracer opentracing.Tracer, closer io.Close
 		extractor,
 		zipkinSharedRPCSpan,
 	)
+	// Important in order to reuse tracer, to extract b3
+	opentracing.SetGlobalTracer(tracer)
 	return tracer, closer, nil
 }
