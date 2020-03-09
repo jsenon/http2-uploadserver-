@@ -38,6 +38,8 @@ func Serve() {
 
 func setupRoutes(tracer opentracing.Tracer) {
 
+	log.Debug().Msgf("tracer: %v", tracer)
+
 	go func() {
 		// service connections
 		http.HandleFunc("/upload", upload.File)
@@ -45,9 +47,16 @@ func setupRoutes(tracer opentracing.Tracer) {
 		http.HandleFunc("/upload-ostream", upload.OStream)
 		http.HandleFunc("/metrics", promhttp.Handler().ServeHTTP)
 		log.Info().Msg("Server Listening on port 8080")
-		if err := http.ListenAndServe(":8080", nethttp.Middleware(tracer, http.DefaultServeMux)); err != nil && err != http.ErrServerClosed {
-			log.Fatal().Msgf("listen: %s\n", err)
+		if tracer != nil {
+			if err := http.ListenAndServe(":8080", nethttp.Middleware(tracer, http.DefaultServeMux)); err != nil && err != http.ErrServerClosed {
+				log.Fatal().Msgf("listen: %s\n", err)
+			}
+		} else {
+			if err := http.ListenAndServe(":8080", nil); err != nil && err != http.ErrServerClosed {
+				log.Fatal().Msgf("listen: %s\n", err)
+			}
 		}
+
 	}()
 
 	quit := make(chan os.Signal, 1)
